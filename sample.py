@@ -7,7 +7,7 @@ spark = SparkSession.builder.appName("StudentDataProcessing").getOrCreate()
 
 # Google Cloud Storage (GCS) Bucket details
 gcs_bucket = "modak-training-bucket1"
-data_path = f"gs://{gcs_bucket}/mt24080_nabu.csv"
+data_path = f"gs://{gcs_bucket}/mt24080_nabu"
 gcs_service_account_key = "/home/goleyogita/Downloads/gcs_cred.json"
 
 # Set GCS configurations
