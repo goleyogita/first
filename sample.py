@@ -3,7 +3,11 @@ from pyspark.sql.functions import col, avg, sum, count, when, row_number
 from pyspark.sql.window import Window
 
 # Initialize Spark session
-spark = SparkSession.builder.appName("StudentDataProcessing").getOrCreate()
+spark = SparkSession.builder \
+    .appName("StudentDataProcessing") \
+    .config("spark.jars.packages", "com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.2.5") \
+    .getOrCreate()
+
 
 # Google Cloud Storage (GCS) Bucket details
 gcs_bucket = "modak-training-bucket1"
