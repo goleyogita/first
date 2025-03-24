@@ -66,10 +66,10 @@ school_monitoring_df = school_monitoring_df.join(topper_df.select("Class", "Name
 school_monitoring_df.show()
 
 # PostgreSQL connection details (Cloud SQL)
-pg_host = "your-cloud-sql-ip"  # Replace with Cloud SQL Public IP
+pg_host = "w3.training5.modak.com"  # Replace with Cloud SQL Public IP
 pg_db = "postgres"
-pg_user = "your-username"
-pg_password = "your-password"
+pg_user = "mt24080"
+pg_password = "mt24080@m12y24"
 pg_url = f"jdbc:postgresql://{pg_host}:5432/{pg_db}"
 
 pg_properties = {
