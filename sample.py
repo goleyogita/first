@@ -9,7 +9,7 @@ spark = SparkSession.builder.appName("StudentDataProcessing").getOrCreate()
 gcs_bucket = "modak-training-bucket1"
 data_path = f"gs://{gcs_bucket}/mt24080_nabu.csv"
 gcs_service_account_key = "/home/goleyogita/Downloads/gcs_cred.json"
-gs://modak-training-bucket1/mt24080_nabu/school_*.csv"
+
 # Set GCS configurations
 spark.conf.set("spark.hadoop.fs.gs.auth.service.account.json.keyfile", gcs_service_account_key)
 
