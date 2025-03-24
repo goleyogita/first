@@ -45,7 +45,6 @@ df = df.withColumn("Grade",
 window_spec = Window.partitionBy("Class", "Section").orderBy(col("Total_Marks").desc())
 df = df.withColumn("Rank", row_number().over(window_spec))
 
-df.show()
 
 # Compute Class Averages
 class_avg_df = df.groupBy("Class").agg(
