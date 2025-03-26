@@ -2,6 +2,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, avg, sum, count, when, row_number
 from pyspark.sql.window import Window
 
+
+gcs_service_account_key = "/home/goleyogita/Downloads/gcs_cred.json"
 # Initialize Spark session
 spark = SparkSession.builder \
     .appName("StudentDataProcessing") \
