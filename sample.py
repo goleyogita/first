@@ -5,9 +5,11 @@ from pyspark.sql.window import Window
 # Initialize Spark session
 spark = SparkSession.builder \
     .appName("StudentDataProcessing") \
-    .config("spark.jars.packages", "com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.2.5") \
+    .config("spark.jars.packages", 
+            "com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.2.5,"
+            "org.apache.hadoop:hadoop-common:3.3.1,"
+            "org.apache.hadoop:hadoop-aws:3.3.1") \
     .getOrCreate()
-
 
 # Google Cloud Storage (GCS) Bucket details
 gcs_bucket = "modak-training-bucket1"
