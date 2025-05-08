@@ -1,84 +1,72 @@
+import subprocess
+import sys
+
+# Install paramiko if not already installed
+try:
+    import paramiko
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "paramiko"])
+    import paramiko
+
 from pyspark.sql import SparkSession
-import paramiko
 import io
-import time
 
-# PostgreSQL JDBC config
-POSTGRES_URL = "jdbc:postgresql://w3.training5.modak.com:5432/postgres"
-POSTGRES_PROPERTIES = {
-    "user": "mt24080",
-    "password": "mt24080@m12y24",
-    "driver": "org.postgresql.Driver"
-}
-
-
-# SFTP config
-SFTP_HOST = 'w3.devcrawlers.modak.com'
-SFTP_PORT = 22
-SFTP_USERNAME = 'sftp_srv_account'
-SFTP_PASSWORD = 'eHK8HAWbQX'
-REMOTE_PATH = '/uploads/nye_test'
-
-# Spark session
+# Initialize Spark session
 spark = SparkSession.builder \
-    .appName("SFTP Triggered Ingest") \
+    .appName("SFTP to ADLS Transfer") \
     .getOrCreate()
 
+# SFTP configuration
+sftp_host = 'w3.devcrawlers.modak.com'
+sftp_port = 22
+sftp_user = 'sftp_srv_account'
+sftp_password = 'eHK8HAWbQX'
+remote_dir = '/uploads/nye_test'
 
-def read_dat_as_df(file_obj):
-    """
-    Reads a streamed .dat file as a Spark DataFrame
-    """
-    file_bytes = file_obj.read()
-    file_str = file_bytes.decode("utf-8")
-    file_rdd = spark.sparkContext.parallelize(file_str.strip().splitlines())
-    header = file_rdd.first()
-    data_rdd = file_rdd.filter(lambda row: row != header).map(lambda row: row.split(","))
-    columns = header.split(",")
+# -------- ADLS Gen2 Configuration --------
+storage_account = 'trainingnew'
+container = 'training-2024'
+gen2_account_key = 'HyBbfPSMNq+XHMyU6w+DyDFMMRfb1ERLg8L81BxYqlHri1wUdFvLVqGXhJaMHbgOxt2T21KQuxw0+AStt8bs/g=='
 
-    return spark.createDataFrame(data_rdd, columns)
+# Set Spark config for ADLS Gen2
+spark.conf.set(f"fs.azure.account.key.{storage_account}.dfs.core.windows.net", gen2_account_key)
 
+# Output path on ADLS
+adls_path = f"abfss://{container}@{storage_account}.dfs.core.windows.net/output/"
 
-def process_files():
-    transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
-    transport.connect(username=SFTP_USERNAME, password=SFTP_PASSWORD)
-    sftp = paramiko.SFTPClient.from_transport(transport)
+# -------- Connect to SFTP --------
+transport = paramiko.Transport((sftp_host, sftp_port))
+transport.connect(username=sftp_user, password=sftp_password)
+sftp = paramiko.SFTPClient.from_transport(transport)
 
-    sftp.chdir(REMOTE_PATH)
-    files = sftp.listdir()
-    trg_files = [f for f in files if f.endswith('.trg')]
+# List files in remote directory
+files = sftp.listdir(remote_dir)
 
-    for trg in trg_files:
-        base = trg[:-4]
-        dat_file = base + '.dat'
+# Match .csv and .txt files by base name
+csv_basenames = {f[:-4] for f in files if f.endswith('.csv')}
+txt_basenames = {f[:-4] for f in files if f.endswith('.txt')}
+matched_basenames = csv_basenames.intersection(txt_basenames)
 
-        if dat_file in files:
-            print(f"Found pair: {trg}, {dat_file}")
-            with sftp.open(dat_file, 'r') as file_obj:
-                buffered_file = io.BytesIO(file_obj.read())
-                df = read_dat_as_df(buffered_file)
+# Process each matched .csv file
+for base in matched_basenames:
+    csv_remote_path = f"{remote_dir}/{base}.csv"
 
-                table_name = base.lower()  # or preserve casing depending on your DB
-                print(f"Inserting data into PostgreSQL table: {table_name}")
+    with sftp.file(csv_remote_path, mode='r') as remote_file:
+        csv_content = remote_file.read().decode('utf-8')
 
-                df.write.jdbc(
-                    url=POSTGRES_URL,
-                    table=table_name,
-                    mode='append',
-                    properties=POSTGRES_PROPERTIES
-                )
-                print(f"Data from {dat_file} inserted into table `{table_name}`.")
+    # Convert to RDD
+    lines = csv_content.splitlines()
+    rdd = spark.sparkContext.parallelize(lines)
+    header = rdd.first()
+    data_rdd = rdd.filter(lambda row: row != header)
 
-            # Optional cleanup:
-            # sftp.remove(trg)
-            # sftp.remove(dat_file)
+    # Read CSV into DataFrame
+    df = spark.read.csv(data_rdd, header=True, inferSchema=True)
 
-    sftp.close()
-    transport.close()
+    # Write to ADLS
+    df.write.mode("overwrite").parquet(f"{adls_path}{base}/")
 
-
-if __name__ == "__main__":
-    while True:
-        process_files()
-        time.sleep(60)  # Check every 60 seconds
-
+# Clean up
+sftp.close()
+transport.close()
+spark.stop()
