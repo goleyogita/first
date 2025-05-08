@@ -1,10 +1,11 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, avg, sum, count, when, row_number
+from pyspark.sql.functions import col, avg, sum, when, row_number
 from pyspark.sql.window import Window
 
 # Initialize Spark session
 spark = SparkSession.builder \
     .appName("StudentDataProcessing_ADLS") \
+    .config("spark.jars", "/path/to/postgresql-42.2.23.jar")  # Include the JDBC driver path for PostgreSQL if needed
     .getOrCreate()
 
 # ADLS Gen2 Config
@@ -82,3 +83,6 @@ pg_properties = {
 df.write.jdbc(url=pg_url, table="transformed_student_performance", mode="overwrite", properties=pg_properties)
 class_avg_df.write.jdbc(url=pg_url, table="transformed_class_avg", mode="overwrite", properties=pg_properties)
 school_monitoring_df.write.jdbc(url=pg_url, table="transformed_school_monitoring", mode="overwrite", properties=pg_properties)
+
+# Stop Spark session
+spark.stop()
