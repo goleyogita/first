@@ -64,7 +64,7 @@ for base in matched_basenames:
     df = spark.read.csv(data_rdd, header=True, inferSchema=True)
 
     # Write to ADLS
-    df.write.mode("overwrite").parquet(f"{adls_path}{base}/")
+    df.coalesce(1).write.mode("overwrite").parquet(f"{adls_path}{base}/")
 
 # Clean up
 sftp.close()
