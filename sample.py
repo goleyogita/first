@@ -5,7 +5,6 @@ from pyspark.sql.window import Window
 # Initialize Spark session
 spark = SparkSession.builder \
     .appName("StudentDataProcessing_ADLS") \
-    .config("spark.jars", "/path/to/postgresql-42.2.23.jar")  # Include the JDBC driver path for PostgreSQL if needed
     .getOrCreate()
 
 # ADLS Gen2 Config
