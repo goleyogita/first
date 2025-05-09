@@ -80,10 +80,10 @@ pg_properties = {
 }
 
 # Write DataFrames to PostgreSQL
-df.write.jdbc(url=pg_url, table="transformed_student_performance", mode="overwrite", properties=pg_properties)
-class_avg_df.write.jdbc(url=pg_url, table="transformed_class_avg", mode="overwrite", properties=pg_properties)
-school_monitoring_df.write.jdbc(url=pg_url, table="transformed_school_monitoring", mode="overwrite", properties=pg_properties)
-topper_df.write.jdbc(url=pg_url, table="transformed_class_toppers", mode="overwrite", properties=pg_properties)
+df.write.jdbc(url=pg_url, table="mt24080_transformed_student_performance", mode="overwrite", properties=pg_properties)
+class_avg_df.write.jdbc(url=pg_url, table="mt24080_transformed_class_avg", mode="overwrite", properties=pg_properties)
+school_monitoring_df.write.jdbc(url=pg_url, table="mt24080_transformed_school_monitoring", mode="overwrite", properties=pg_properties)
+topper_df.write.jdbc(url=pg_url, table="mt24080_transformed_class_toppers", mode="overwrite", properties=pg_properties)
 
 # Stop Spark session
 spark.stop()
