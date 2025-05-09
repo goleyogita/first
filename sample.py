@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, avg, sum, when, row_number
+from pyspark.sql.functions import col, avg, when, row_number
 from pyspark.sql.window import Window
+from functools import reduce
 
 # Initialize Spark session
 spark = SparkSession.builder \
@@ -28,11 +29,12 @@ subject_cols = ["Math", "English", "Hindi", "Science", "Economics",
 # Fill missing values with 0
 df = df.fillna(0, subset=subject_cols)
 
-# Compute Total Marks & Percentage
-df = df.withColumn("Total_Marks", sum(col(subj) for subj in subject_cols))
+# Compute Total Marks
+df = df.withColumn("Total_Marks", reduce(lambda a, b: a + b, [col(subj) for subj in subject_cols]))
 
 # Count of subjects attempted
-df = df.withColumn("Subject_Count", sum(when(col(subj).isNotNull(), 1).otherwise(0) for subj in subject_cols))
+df = df.withColumn("Subject_Count", reduce(lambda a, b: a + b,
+    [when(col(subj).isNotNull(), 1).otherwise(0) for subj in subject_cols]))
 
 # Calculate percentage
 df = df.withColumn("Percentage", (col("Total_Marks") / (col("Subject_Count") * 100)) * 100)
@@ -64,7 +66,9 @@ school_monitoring_df = df.groupBy().agg(
 # Class toppers
 window_class_topper = Window.partitionBy("Class").orderBy(col("Percentage").desc())
 topper_df = df.withColumn("Rank", row_number().over(window_class_topper)).filter(col("Rank") == 1)
-school_monitoring_df = school_monitoring_df.join(topper_df.select("Class", "Name", "Percentage"), "Class", "left")
+school_monitoring_df = school_monitoring_df.join(
+    topper_df.select("Class", "Name", "Percentage"), on="Class", how="left"
+)
 
 # PostgreSQL connection details
 pg_host = "w3.training5.modak.com"
