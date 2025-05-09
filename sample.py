@@ -58,17 +58,14 @@ class_avg_df = df.groupBy("Class").agg(
     avg("Percentage").alias("Class_Percentage")
 )
 
-# School-level stats
+# School-level stats (one row only, no 'Class' column here)
 school_monitoring_df = df.groupBy().agg(
     *[avg(col(subj)).alias(f"School_Avg_{subj}") for subj in subject_cols]
 )
 
-# Class toppers
+# Class toppers (one row per class)
 window_class_topper = Window.partitionBy("Class").orderBy(col("Percentage").desc())
-topper_df = df.withColumn("Rank", row_number().over(window_class_topper)).filter(col("Rank") == 1)
-school_monitoring_df = school_monitoring_df.join(
-    topper_df.select("Class", "Name", "Percentage"), on="Class", how="left"
-)
+topper_df = df.withColumn("Class_Rank", row_number().over(window_class_topper)).filter(col("Class_Rank") == 1)
 
 # PostgreSQL connection details
 pg_host = "w3.training5.modak.com"
@@ -86,6 +83,7 @@ pg_properties = {
 df.write.jdbc(url=pg_url, table="transformed_student_performance", mode="overwrite", properties=pg_properties)
 class_avg_df.write.jdbc(url=pg_url, table="transformed_class_avg", mode="overwrite", properties=pg_properties)
 school_monitoring_df.write.jdbc(url=pg_url, table="transformed_school_monitoring", mode="overwrite", properties=pg_properties)
+topper_df.write.jdbc(url=pg_url, table="transformed_class_toppers", mode="overwrite", properties=pg_properties)
 
 # Stop Spark session
 spark.stop()
